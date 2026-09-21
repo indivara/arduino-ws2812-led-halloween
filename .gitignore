@@ -1,0 +1,38 @@
+# --- Arduino ---
+# Build output (arduino-cli --output-dir / --build-path, Arduino IDE 2 exports)
+build/
+/*.elf
+/*.hex
+/*.bin
+/*.eep
+/*.map
+/*.lst
+/*.with_bootloader.*
+# Arduino IDE 2 / VS Code Arduino extension
+.vscode/ipch/
+.vscode/.browse.c_cpp.db*
+# Vendored libraries or per-machine CLI config
+/libraries/
+arduino-cli.yaml
+# Serial monitor captures
+*.log
+
+# --- macOS ---
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+.fseventsd
+.DocumentRevisions-V100
+.TemporaryItems
+
+# --- Windows ---
+Thumbs.db
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+*.stackdump
