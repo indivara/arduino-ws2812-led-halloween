@@ -6,6 +6,10 @@ Arduino Uno sketch that makes three 1 m WS2812B strips flicker like worn-out flu
 - Every tube flickers independently
 - Dim by default, so the strips can run from the Uno's 5V pin
 
+## Demo
+
+![Dying fluorescent tubes demo](docs/demo.gif)
+
 ## The effect
 
 Each tube loops through the same sequence, with random timing:
