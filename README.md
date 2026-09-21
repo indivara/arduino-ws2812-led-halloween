@@ -120,3 +120,7 @@ At the top of `led-driver.ino`:
 | `ELECTRODE_PIXELS` | `3`          | How many pixels at each end of a tube glow.                                                  |
 
 The flash and pause durations are in `enterPhase()` in the sketch, if you want the flicker faster or slower.
+
+## License
+
+GPL-3.0. See [LICENSE](LICENSE). The FastLED library it depends on is separately licensed (MIT).
