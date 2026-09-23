@@ -1,8 +1,8 @@
 # Arduino WS2812B Halloween Effect
 
-Arduino Uno sketch that makes three 1 m WS2812B strips flicker like worn-out fluorescent tubes that keep trying to light and failing. Uses the [FastLED](https://fastled.io/) library.
+Arduino Uno sketch that makes WS2812B strips flicker like worn-out fluorescent tubes that keep trying to light and failing. Uses the [FastLED](https://fastled.io/) library.
 
-- 3 tubes, each one 1 m strip of 60 LEDs (180 pixels in total)
+- `NUM_TUBES` independent tubes of `TUBE_LEN` pixels each (default: 4 × 75 = 300 pixels total)
 - Every tube flickers independently
 - Dim by default, so the strips can run from the Uno's 5V pin
 
@@ -12,17 +12,20 @@ Arduino Uno sketch that makes three 1 m WS2812B strips flicker like worn-out flu
 
 ## The effect
 
-Each tube loops through the same sequence, with random timing:
+Each tube runs its own independent cycle:
 
-1. **Dark pause** (0.4 to 2.5 s), ends smouldering faintly like the electrodes of a real tube.
-2. **Failed starts:** 2 to 8 flashes, each lighting a random length of the tube from one end before it drops out.
-3. **Almost catches** (about 1 time in 4): the whole tube fades up, holds for a moment, then dies.
+1. **Dark pause.** The tube body is off; the electrode pixels at each end glow faintly, like embers. This is the only time the two ends and the body can show different things — the body is otherwise always lit uniformly along its whole length. Real tubes don't light up in partial segments, so the sketch never draws one.
+2. **A burst of quick flashes.** The whole tube body brightens and dims together, to a random brightness, over a random ramp length, then drops back to dark. This repeats a random number of times.
+3. **Occasionally, one attempt catches** (about 1 time in 4 bursts): instead of dropping straight out, the last flash reaches full brightness and holds there briefly before fading.
+4. Either way, it goes dark and the cycle returns to the dark pause.
+
+The ramp lengths, flash counts, brightness levels and pause durations are all randomized independently, so no two tubes (or repeats) look quite the same.
 
 ## Wiring
 
 **Use a 5V supply only.** WS2812B strips are 5V parts. Connecting a 12V supply to the strip's power pads destroys the pixels.
 
-The three strips are chained: the first strip's data input (DIN) connects to the Uno, and the data output (DOUT) of each strip connects to the DIN of the next. The first 60 pixels are tube 1, the next 60 are tube 2, and the last 60 are tube 3.
+The strips are chained: the first strip's data input (DIN) connects to the Uno, and the data output (DOUT) of each strip connects to the DIN of the next. With the defaults (`NUM_TUBES 4`, `TUBE_LEN 75`), pixels 0-74 are tube 1, 75-149 are tube 2, 150-224 are tube 3, and 225-299 are tube 4.
 
 ### Powered from the Uno's 5V pin
 
@@ -35,18 +38,18 @@ This works at the default brightness (see [Power](#power)).
 | Uno **D6**   | First strip **DIN** (via resistor, see below) |
 
 ```
-  Uno                    Strip 1          Strip 2          Strip 3
- ┌──────┐               ┌────────┐       ┌────────┐       ┌────────┐
- │  5V  ├───────────────┤ V+     │       │ V+     │       │ V+     │
- │  GND ├───────────────┤ GND    │       │ GND    │       │ GND    │
- │  D6  ├──/\/\/────────┤ DIN    │       │ DIN    │       │ DIN    │
- └──────┘  330-470Ω     │    DOUT├───────┤DIN DOUT├───────┤DIN     │
-                        └────────┘       └────────┘       └────────┘
+  Uno                    Strip 1          Strip 2          Strip 3          Strip 4
+ ┌──────┐               ┌────────┐       ┌────────┐       ┌────────┐       ┌────────┐
+ │  5V  ├───────────────┤ V+     │       │ V+     │       │ V+     │       │ V+     │
+ │  GND ├───────────────┤ GND    │       │ GND    │       │ GND    │       │ GND    │
+ │  D6  ├──/\/\/────────┤ DIN    │       │ DIN    │       │ DIN    │       │ DIN    │
+ └──────┘  330-470Ω     │    DOUT├───────┤DIN DOUT├───────┤DIN DOUT├───────┤DIN     │
+                        └────────┘       └────────┘       └────────┘       └────────┘
 ```
 
 The diagram shows only the data chain. Power and ground also need to reach each strip (see below).
 
-**Power each strip.** Over a chain of 3 m the 5V and GND lines drop voltage, and pixels far from the source get dimmer or change color. Connect V+ and GND to the start of every strip, not only the first. Keep the shared ground between all strips and the Uno.
+**Power each strip.** Over a long chain the 5V and GND lines drop voltage, and pixels far from the source get dimmer or change color. Connect V+ and GND to the start of every strip, not only the first. Keep the shared ground between all strips and the Uno.
 
 Connect the strip's **DIN** end (the input), not DOUT. The arrows printed on the strip point away from the input.
 
@@ -77,13 +80,13 @@ Neither is required for the sketch to work, but they protect the strip:
 
 The Uno's 5V pin passes on the USB supply, which is limited to about 500 mA in total, including the Uno itself (about 50 mA).
 
-At the default settings, the strips stay within that:
+At the default settings, the strips stay close to that budget:
 
-- **Brightness** is low (`MAX_BRIGHTNESS 20` of 255), and the orange tube color is mostly red, which draws the least current.
-- **Idle current** is roughly 1 mA per pixel even when dark, so about 180 mA for 180 pixels. The dark parts of the effect are not free.
-- **The current cap** (`MAX_MILLIAMPS 300`) makes FastLED dim the strip automatically if too many pixels are lit at once. The sketch counts the idle current in that limit.
+- **Brightness** is low (`MAX_BRIGHTNESS 16` of 255), and the orange tube color is mostly red, which draws the least current.
+- **Idle current** is roughly 1 mA per pixel even when dark, so about 300 mA for the 300 pixels total. This floor is the chips' own logic current, not the color output, so it doesn't shrink along with `MAX_BRIGHTNESS`.
+- **The current cap** (`MAX_MILLIAMPS 250`) makes FastLED dim the strip automatically if too many pixels are lit brightly at once. It's now below that idle floor, though, so real draw sits close to, or a bit above, the cap even with nothing lit brightly — worth watching if you add more tubes or a brighter color.
 
-If you raise `MAX_BRIGHTNESS`, switch to an external 5V supply and raise `MAX_MILLIAMPS` to match. For scale, 180 pixels at full white draw about 10.8 A, so size the supply for the brightness you actually use, not the maximum. Also use thicker wires and connect power at each strip, since one 3 m chain can't carry that current.
+If you raise `MAX_BRIGHTNESS`, switch to an external 5V supply and raise `MAX_MILLIAMPS` to match. For scale, 300 pixels at full white draw about 18 A, so size the supply for the brightness you actually use, not the maximum. Also use thicker wires and connect power at each strip, since one long chain can't carry that current.
 
 ## Software
 
@@ -114,16 +117,17 @@ At the top of `led-driver.ino`:
 | Define             | Default      | Notes                                                                                        |
 | ------------------ | ------------ | -----------------------------------------------------------------------------------------    |
 | `DATA_PIN`         | `6`          | Must match the Uno pin wired to DIN.                                                         |
-| `NUM_LEDS`         | `60 * 3`     | **Total pixel count of all strips.** It can't be detected, so set it to your real count.     |
-| `NUM_TUBES`        | `3`          | Number of independent tubes. Each tube is `NUM_LEDS / NUM_TUBES` pixels. Must divide evenly. |
+| `NUM_TUBES`        | `4`          | Number of independent tubes.                                                                 |
+| `TUBE_LEN`         | `75`         | Pixels per tube. `NUM_LEDS` (total pixel count, can't be detected) is `NUM_TUBES * TUBE_LEN`, set from these two rather than directly. |
 | `COLOR_ORDER`      | `GRB`        | If the colors are wrong (e.g. green instead of red), try `RGB` or `BRG`.                     |
-| `MAX_BRIGHTNESS`   | `20`         | Brightest the strip ever gets, 0-255. Everything scales to it. Raise it to brighten.         |
-| `MAX_MILLIAMPS`    | `300`        | Current cap. FastLED dims the strip to stay under it. See [Power](#power).                   |
-| `TUBE_COLOR`       | orange       | Color of the tube when it flashes.                                                           |
+| `MAX_BRIGHTNESS`   | `16`         | Brightest the strip ever gets, 0-255. Everything scales to it. Raise it to brighten.         |
+| `MAX_MILLIAMPS`    | `250`        | Current cap. FastLED dims the strip to stay under it. See [Power](#power).                   |
+| `SPEED_SCALE`      | `1.0`        | Multiplies every pause, ramp and hold duration at once. `2.0` is half speed, `0.5` is double speed. |
+| `TUBE_COLOR`       | orange       | Color of the tube body when lit.                                                             |
 | `ELECTRODE_COLOR`  | warm orange  | Glow at the ends of each tube.                                                               |
 | `ELECTRODE_PIXELS` | `3`          | How many pixels at each end of a tube glow.                                                  |
 
-The flash and pause durations are in `enterPhase()` in the sketch, if you want the flicker faster or slower.
+`SPEED_SCALE` is the quick way to make the whole effect faster or slower. For finer control — e.g. longer pauses without slowing the flashes, or the reverse — edit the `random()` ranges directly in the sketch: the pause length is in `enterPhase()`'s `PAUSE` case, and the flash ramp/hold lengths are in its `RAMP_UP`/`LIT`/`RAMP_DOWN` cases and in `rampTickMs()`.
 
 ## License
 
